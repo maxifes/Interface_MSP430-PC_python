@@ -3,6 +3,16 @@ import serial.tools.list_ports
 import serial
 import time
 
+"""
+- Envia byte de inicio
+- Espera byte de ACK
+- Envia una linea del archivo .hex
+- Espera byte de ACK
+
+Nota: Todo funciona bien, se envia una sola linea del 
+archivo .hex.
+"""
+
 def int_to_bytes(vector): 
     data = []
     i = 0
