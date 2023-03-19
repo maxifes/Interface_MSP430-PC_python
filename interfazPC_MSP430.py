@@ -70,6 +70,7 @@ serialInst.stopbits = STOPBITS_ONE
 serialInst.port = portVar
 serialInst.open()
 
+Tx_Delay = 0.1 #in seconds
 startByte = 15 #0x0F
 endByte = 240  #0xF0 
 ackByte = 121 #0x79
@@ -81,6 +82,17 @@ ackByte = ackByte.to_bytes(1,'big')
 nackByte = nackByte.to_bytes(1,'big')
 
 serialInst.write(startByte) #indica que comenzará transmision
+response = serialInst.read()
+#response = int.from_bytes(response,'big')
+
+if (response == ackByte):
+    error = 0
+elif(response == nackByte):
+    error = 2
+elif(response != ackByte):
+    error = 2
+
+print(error)
 
 while(error != 2):
     vector = archivo.readline()
@@ -89,23 +101,23 @@ while(error != 2):
     error = 0 #resetea el valor del vector a 0 
     if(data[3] == 0):
         ##while(error != 2): 
-        serialInst.write(data_in_Bytes[0]) #Envia Byte ADDRESS MSB 
-        time.sleep(0.1)
-        serialInst.write(data_in_Bytes[1]) #Envia Byte ADDRESS LSB
-        time.sleep(0.1)
-        serialInst.write(data_in_Bytes[2]) #Envia numero de Bytes
-        time.sleep(0.1)
-        serialInst.write(data_in_Bytes[3]) #Envia numero de Bytes
-        time.sleep(0.1)
-        for i in range(4,4+data[0]):
+        serialInst.write(data_in_Bytes[0]) #Envia num bytes
+        time.sleep(Tx_Delay)
+        serialInst.write(data_in_Bytes[1]) #Envia ADDRESS MSB
+        time.sleep(Tx_Delay)
+        serialInst.write(data_in_Bytes[2]) #Envia ADDRESS LSB 
+        time.sleep(Tx_Delay)
+        #serialInst.write(data_in_Bytes[3]) #Envia Record Type 
+        #time.sleep(Tx_Delay)
+        for i in range(4,4+data[0]): 
             serialInst.write(data_in_Bytes[i]) #Envia Bytes de datos.
-            time.sleep(0.1)
-        serialInst.write(data_in_Bytes[4+data[0]])
-        #ack_received = serialInst.read(); ##Espera Byte de ACK 
-        #if (ack_received != ackByte): ##Si el byte de ack coincide
-        #    break # Sale del while
-        #if (ack_received != ackByte):
-        #    error = error + 1 #repite el while pero incrementa el error
+            time.sleep(Tx_Delay)
+        serialInst.write(data_in_Bytes[4+data[0]]) #Envia checksum
+        time.sleep(Tx_Delay)
+        response = serialInst.read() #Lee respuesta del MSP430
+        response = int.from_bytes(response,'big')
+        error = 2
+        print(response)
         print(data)
     elif(data[3] == 1):
         #enviarByte de terminacion al MSP430.
@@ -119,10 +131,10 @@ while(error != 2):
         print("exteded linear Address")
     elif(data[3] == 5): 
         print("Start linear Address")
-    for i in range(0,5):
-        serialInst.write(ackByte)
+    #for i in range(0,5):
+        #serialInst.write(ackByte)
 
 if (error == 2):
-    print("El byte de ACK ha sido incorrecta dos veces consecutivas")
+    print("El byte de ACK ha sido incorrecto dos veces consecutivas")
 
 serialInst.close()
