@@ -91,6 +91,8 @@ endByte = endByte.to_bytes(1,'big')
 ackByte = ackByte.to_bytes(1,'big')
 nackByte = nackByte.to_bytes(1,'big')
 
+send_again_request = 1
+
 serialInst.write(startByte) #indica que comenzará transmision
 response = serialInst.read()
 #response = int.from_bytes(response,'big')
@@ -110,27 +112,32 @@ while(error != 2):
     data_in_Bytes = int_to_bytes(data)
     error = 0 #resetea el valor del vector a 0 
     if(data[3] == 0):
-        ##while(error != 2): 
-        serialInst.write(data_in_Bytes[0]) #Envia num bytes
-        time.sleep(Tx_Delay)
-        serialInst.write(data_in_Bytes[1]) #Envia ADDRESS MSB
-        time.sleep(Tx_Delay)
-        serialInst.write(data_in_Bytes[2]) #Envia ADDRESS LSB 
-        time.sleep(Tx_Delay)
-        #serialInst.write(data_in_Bytes[3]) #Envia Record Type 
-        #time.sleep(Tx_Delay)
-        for i in range(4,4+data[0]): 
-            serialInst.write(data_in_Bytes[i]) #Envia Bytes de datos.
+        while(send_again_request == 1):
+            serialInst.write(data_in_Bytes[0]) #Envia num bytes
             time.sleep(Tx_Delay)
-        serialInst.write(data_in_Bytes[4+data[0]]) #Envia checksum
-        time.sleep(Tx_Delay)
-        response = serialInst.read() #Lee respuesta del MSP430
-        response = int.from_bytes(response,'big')
-        error = 2
-        print(response)
-        print(data)
+            serialInst.write(data_in_Bytes[1]) #Envia ADDRESS MSB
+            time.sleep(Tx_Delay)
+            serialInst.write(data_in_Bytes[2]) #Envia ADDRESS LSB 
+            time.sleep(Tx_Delay)
+            #serialInst.write(data_in_Bytes[3]) #Envia Record Type 
+            #time.sleep(Tx_Delay)
+            for i in range(4,4+data[0]): 
+                serialInst.write(data_in_Bytes[i]) #Envia Bytes de datos.
+                time.sleep(Tx_Delay)
+            serialInst.write(data_in_Bytes[4+data[0]]) #Envia checksum
+            time.sleep(Tx_Delay)
+            time.sleep(Tx_Delay)
+            response = serialInst.read() #Lee respuesta del MSP430
+            if(response == ackByte):
+                send_again_request = 0
+            if(response == nackByte): 
+                send_again_request = 1
+            response = int.from_bytes(response,'big')
+            print(data)
+            print("Response: ",response)
+        send_again_request = 1
     elif(data[3] == 1):
-        #enviarByte de terminacion al MSP430.
+        serialInst.write(endByte)
         print("Se ha terminado de cargar el programa")
         break
     elif(data[3] == 2): 
